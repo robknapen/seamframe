@@ -1,0 +1,125 @@
+<?xml version="1.0" ?>
+<!--
+  ~ seamframe: build.xml
+  ~ ==============================================================================
+  ~ This work has been carried out as part of the SEAMLESS Integrated Framework
+  ~ project, EU 6th Framework Programme, contract no. 010036-2 and/or as part
+  ~ of the SEAMLESS association.
+  ~
+  ~ Copyright (c) 2009 The SEAMLESS Association.
+  ~
+  ~ For more information: http://www.seamlessassociation.org;
+  ~ email: info@seamless-if.org
+  ~
+  ~ The contents of this file is subject to the SEAMLESS Association License for
+  ~ software infrastructure and model components Version 1.1 (the "License");
+  ~ you may not use this file except in compliance with the License. You may
+  ~ obtain a copy of the License at http://www.seamlessassociation.org/License.htm
+  ~
+  ~ Software distributed under the License is distributed on an "AS IS"  basis,
+  ~ WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for
+  ~ the specific governing rights and limitations.
+  ~
+  ~ The Initial Developers of the Original Code are:
+  ~  - Benny Johnsson; Lund University
+  ~  - Rob Knapen; Alterra, Wageningen UR
+  ~
+  ~ ================================================================================
+  ~ Contributor(s): N/A
+  ~ ================================================================================
+  -->
+
+<project name="seamframe" default="default">
+
+    <property name="project.name" value="seamframe"/>
+    <property name="root.dir" value="${basedir}"/>
+    <property name="build.dir" value="${root.dir}/build"/>
+    <property name="build.dir.classes" value="${build.dir}/classes"/>
+    <property name="build.dir.jar" value="${build.dir}/jar"/>
+    <property name="javadoc.dir" value="${build.dir}/javadoc"/>
+    <property name="log4j.properties" value="${basedir}/lib/log4j.properties"/>
+
+    <property name="pmd.home" value="/opt/pmd-4.2.5/"/>
+    <property name="findbugs.home" value="/opt/findbugs-1.3.8/"/>
+    <property name="checkstyle.home" value="/opt/checkstyle-5.0/"/>
+
+    <path id="compile.classpath">
+        <fileset dir="lib">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+
+    <!-- Targets to clean and compile the source code -->
+
+    <target name="default" description="The default entry point" depends="check"/>
+
+    <target name="init" description="Creates dir for build">
+        <delete dir="${build.dir}"/>
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.dir.classes}"/>
+        <mkdir dir="${build.dir.jar}"/>
+    </target>
+
+    <target name="jar" depends="compile">
+        <jar destfile="${build.dir.jar}/${project.name}.jar" basedir="${build.dir.classes}">
+        </jar>
+    </target>
+
+    <target name="compile" description="Compile all" depends="init">
+        <javac srcdir="${basedir}" destdir="${build.dir.classes}" debug="true">
+            <classpath refid="compile.classpath"/>
+        </javac>
+    </target>
+
+    <!-- Targets for building, testing and distributing -->
+
+    <target name="noop" description="Does nothing but print the name of the project">
+        <echo>${project.name} (${basedir})</echo>
+    </target>
+
+    <target name="build" description="Builds the output" depends="jar"/>
+
+    <target name="dist" description="Builds the output and produces the distributables" depends="jar"/>
+
+    <target name="check" description="Builds the output and validates it" depends="jar">
+        <path id="pmd-jar">
+            <pathelement path="${pmd.home}/lib/pmd-4.2.5.jar"/>
+        </path>
+        <taskdef name="pmd" classname="net.sourceforge.pmd.ant.PMDTask" classpathref="pmd-jar"/>
+        <pmd shortFilenames="true">
+            <ruleset>basic</ruleset>
+            <ruleset>unusedcode</ruleset>
+            <ruleset>logging-jakarta-commons</ruleset>
+            <formatter type="xml" toFile="pmd_report.xml"/>
+            <fileset dir="${basedir}" includes="**/*.java">
+                <exclude name="**/obsolete/**"/>
+                <exclude name="**/test/**"/>
+            </fileset>
+        </pmd>
+
+        <path id="findbugs-jar">
+            <pathelement path="${findbugs.home}/lib/findbugs-ant.jar"/>
+        </path>
+        <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpathref="findbugs-jar"/>
+        <findbugs home="${findbugs.home}"
+                  output="xml"
+                  outputFile="findbugs_report.xml">
+            <sourcePath path="${basedir}/src/"/>
+            <class location="${basedir}/build/jar/seamframe.jar"/>
+        </findbugs>
+
+        <path id="checkstyle-jar">
+            <pathelement path="${checkstyle.home}/checkstyle-all-5.0.jar"/>
+        </path>
+        <taskdef resource="checkstyletask.properties" classpathref="checkstyle-jar"/>
+        <checkstyle config="${basedir}/lib/checkstyle.xml">
+            <fileset dir="${basedir}" includes="**/*.java">
+                <exclude name="**/obsolete/**"/>
+                <exclude name="**/test/**"/>
+            </fileset>
+            <formatter type="xml" toFile="checkstyle_report.xml"/>
+        </checkstyle>
+
+    </target>
+
+</project>
